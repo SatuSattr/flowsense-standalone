@@ -1,0 +1,11 @@
+name: tipflow
+version: '1.0'
+main: id.flowsense.Main
+api-version: '1.18'
+commands:
+  tipflow:
+    description: Reload TipFlow plugin
+    usage: /tipflow reload
+authors: [ Sattr ]
+description: webhook-powered donation notifier for Minecraft
+website: sattr.vercel.id

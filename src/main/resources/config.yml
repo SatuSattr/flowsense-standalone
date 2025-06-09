@@ -1,0 +1,22 @@
+# very special private secret token that you should keep by yourself
+# this token is used to activate your plugin
+token: ""
+
+# choose donation provider that suites your needs, here are the list
+# 1 = Saweria         https://saweria.co/
+# 2 = Tako            https://tako.id/
+# 3 = Trakteer.id     https://trakteer.id/
+# type: integer
+# default: 1
+provider: 1
+
+# your webhook token from the selected provider
+# type: string
+# default: ""
+webhook-token: ""
+
+# the plugins's prefix
+# minimessage support
+# type: string
+# default: "<#60B5FF>[flowsense]&r"
+prefix: "<#60B5FF>[flowsense]&r"
