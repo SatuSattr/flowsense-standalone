@@ -8,7 +8,6 @@
 - Real-time donation polling from backend
 - Automatically handles authorization and updates
 - Sends donation data directly to your Minecraft server
-- Custom logging with `loggx` and message sending via `sendMessage`
 
 ## 📜 Commands
 
