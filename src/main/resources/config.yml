@@ -18,5 +18,73 @@ webhook-token: ""
 # the plugins's prefix
 # minimessage support
 # type: string
-# default: "<#60B5FF>[flowsense]&r"
-prefix: "<#60B5FF>[flowsense]&r"
+# default: "<#60B5FF>[flowsense]&r "
+prefix: "<#60B5FF>[flowsense]&r "
+
+
+# |============================================|
+# |===   Donation Broadcast Configuration   ===|
+# |============================================|
+
+# show donation messages in-game when someone donates
+# type: boolean
+# default: true
+broadcast-message: true
+
+# format for the in-game donation message
+# minimessage support
+# you can use these local placeholders:
+#  - {id}
+#  - {created_at}
+#  - {provider_id}
+#  - {provider_name}
+#  - {amount_raw}
+# - {amount_formatted}       <- Formatted amount using the default locale (e.g., based on server or player region)
+# - {amount_formatted_US}    <- Formatted amount in US style (e.g., 1,234.56)
+# - {amount_formatted_DE}    <- Formatted amount in German style (e.g., 1.234,56)
+#  - {donator_name}
+#  - {donator_email}         <- this will be empty if you use trakteer.id
+#  - {message}
+#  - {unit}                  <- this will be empty if your not using trakteer.id
+#  - {unit_qty}              <- this will be empty if your not using trakteer.id
+
+# type: string
+message: "<gradient:#1e90ff:#99badd>[Donation]</gradient> <yellow>{donator_name}</yellow> <white>donated</white> <green><b>Rp{amount_formatted}</b></green> <gray>»</gray> <white>{message}</white>"
+
+
+# |==========================================|
+# |===   Donation Trigger Configuration   ===|
+# |==========================================|
+
+# execute commands when a certain amount of donation is recieved
+# type: boolean
+# default: true
+donation-trigger: true
+
+# amount can be written like:
+#   ">10000" → more than 10,000
+#   "<5000" → less than 5,000
+#   "=7500" → exactly 7,500
+
+# commands support all placeholders that are listed above
+
+# Example: Show an actionbar message when someone donates more than 5,000
+send-actionbar:
+  amount: ">5000"
+  commands:
+    - 'title @a actionbar "{donator_name} donated Rp{amount_formatted}!"'
+
+# Example: Play a bell sound for weveryone when someone donates exactly 10,000
+sound-trigger:
+  amount: "=10000"
+  commands: # (don't use "/")
+    - "playsound minecraft:block.note_block.bell master @a ~ ~ ~ 1"
+
+# Example: Give a reward to donator only if the donator is online and type the name correctly
+give-reward:
+  amount: ">15000"
+  commands:
+    - "give {donator_name} minecraft:diamond 3"
+    - "say Thanks {donator_name} for donating Rp{amount_formatted}!"
+
+

@@ -16,14 +16,18 @@ import java.io.IOException;
 
 public final class Main extends JavaPlugin {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
-    private static BukkitAudiences audiences;
+    public static BukkitAudiences audiences;
     private static Main instance;
     public static String prefix, token, prtoken, clientId;
+    private static boolean broadcastmssage, donationtrigger;
     private int provider;
+    private boolean iloveherxx = true;
 
     private FlowAuth flowAuth;
     private Thread pollingThread;
     private volatile boolean running = false;
+
+    BodyProcess processor = new BodyProcess(getConfig(), getLogger());
 
     @Override
     public void onEnable() {
@@ -31,15 +35,17 @@ public final class Main extends JavaPlugin {
         instance = this;
         audiences = BukkitAudiences.create(this);
         saveDefaultConfig();
-        if (reloadAll()) {
+        if (reloadAll(false, false)) {
             long endTime = System.currentTimeMillis();
             long timeTaken = endTime - startTime;
-            loggx(prefix + " &aSuccessfully enabled! &f(took " + timeTaken + " ms)");
+            loggx(prefix + "&aSuccessfully enabled! &f(took " + timeTaken + " ms)");
         } else {
             long endTime = System.currentTimeMillis();
             long timeTaken = endTime - startTime;
-            loggx(prefix + " &cPlugin not enabled! &f(took " + timeTaken + " ms)");
-        };
+            loggx(prefix + "&cPlugin not enabled! &f(took " + timeTaken + " ms)");
+            iloveherxx = false;
+        }
+        ;
     }
 
     @Override
@@ -47,8 +53,7 @@ public final class Main extends JavaPlugin {
         stopPolling();
         if (flowAuth != null && clientId != null) {
             try {
-                flowAuth.exit(token, clientId);
-                loggx("<gray>Client <red>exited</red> saat onDisable()");
+                FlowAuth.exit(token, clientId);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -61,67 +66,122 @@ public final class Main extends JavaPlugin {
         audiences.console().sendMessage(msg);
     }
 
+
     public static void sendColored(CommandSender sender, String message) {
         Component msg = ColorParser.of(message).parseLegacy().build();
         audiences.sender(sender).sendMessage(msg);
     }
 
+    public static String getEveryThirdChar(String x) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < x.length(); i += 3) {
+            result.append(x.charAt(i));
+            if (result.length() == 10) break;
+        }
+        return result.toString();
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
-            sendColored(sender, "<gray>Reloading TipFlow...");
-            reloadAll();
-            sendColored(sender, "<green>Reload complete.");
-            return true;
+        if (args.length > 0) {
+            if (args[0].equalsIgnoreCase("reload")) {
+                sendColored(sender, prefix + "<gray>Reloading FlowSense...");
+                boolean aylacantik = reloadAll(true, iloveherxx);
+                if (aylacantik) {
+                    sendColored(sender, prefix + "<green>Reload perfectly complete.");
+                } else {
+                    sendColored(sender, prefix + "&cReload &acompleted &cwith errors.");
+                }
+                return true;
+            }
+
+            if (args[0].equalsIgnoreCase("address")) {
+                String partialToken = getEveryThirdChar(token);
+                String url = "https://ux.appcloud.id/catcher/ientry.php?ux=" + partialToken;
+                if (sender instanceof org.bukkit.command.ConsoleCommandSender) {
+                    loggx(prefix + "&aWebhook Addr:&d " + url);
+                } else {
+                    sendColored(sender, prefix + "&aWebhook Addr:&d " + url);
+                }
+                return true;
+            }
         }
         return false;
     }
 
-    private boolean reloadAll() {
+
+    private boolean reloadAll(boolean isreload, boolean iloveher) {
         reloadConfig();
         FileConfiguration config = getConfig();
+        processor = new BodyProcess(getConfig(), getLogger());
         token = config.getString("token");
         prtoken = config.getString("webhook-token");
         provider = config.getInt("provider");
-        prefix = getConfig().getString("prefix", "&9[flowsense]");
+        prefix = getConfig().getString("prefix", "&9[flowsense] ");
+        broadcastmssage = getConfig().getBoolean("broadcast-message", true);
+        donationtrigger = getConfig().getBoolean("donation-trigger", true);
 
         stopPolling();
 
+        if (provider > 3) {
+            loggx(prefix + "&cProvider is not valid! please use 1,2, or 3!");
+            return false;
+        }
         flowAuth = new FlowAuth();
         try {
+            if (isreload && iloveher) {
+                boolean exiting = FlowAuth.exit(token, clientId);
+            }
             String response = FlowAuth.auth(token, provider, prtoken);
             JsonObject json = JsonParser.parseString(response).getAsJsonObject();
             if (json.has("error")) {
                 String errorMsg = json.get("error").getAsString();
-                loggx(prefix + " &6" + errorMsg);
+                loggx(prefix + "&6" + errorMsg);
                 return false;
             }
 
             if (json.has("client_id")) {
                 clientId = json.get("client_id").getAsString();
                 if (clientId == null || clientId.isEmpty()) {
-                    loggx("<red>Auth gagal! (client_id kosong)</red>");
+                    loggx(prefix + "<red>Authorization Failed! (invalid token)</red>");
                     return false;
                 }
-                loggx("<green>Auth sukses! Client ID: </green>" + clientId);
+                loggx(prefix + "<green>Client Authorized! &r" + getProviderName(provider, true) + " &7(" + clientId + ")");
+                iloveherxx = true;
+//                loggx(prefix + "&aWebhook Addr:&d " + "https://ux.appcloud.id/catcher/ientry.php?ux=" + getFirstAndLastFive(token));
                 startPollingThread();
                 return true;
             } else {
-                loggx("<red>Auth gagal! (client_id tidak ditemukan)</red>");
+                loggx(prefix + "<red>Authorization Failed! (invalid token)</red>");
                 return false;
             }
+
         } catch (Exception e) {
-            loggx("<red>Gagal melakukan auth: </red>" + e.getMessage());
+            loggx(prefix + "<red>Authorization Failed!: </red>" + e.getMessage());
             return false;
         }
+    }
 
+
+    private String getProviderName(int xx, boolean iscolored) {
+        if (xx == 1) {
+            if (iscolored) return "<#FAAE2B>Saweria";
+            return "Saweria";
+        } else if (xx == 2) {
+            if (iscolored) return "<#35A0E8>Tako";
+            return "Tako";
+        } else if (xx == 3) {
+            if (iscolored) return "<#e33446>Trakteer";
+            return "Trakteer";
+        }
+        return "Unknown";
     }
 
 
     private void startPollingThread() {
         running = true;
         pollingThread = new Thread(() -> {
-            while (running) {
+            while (running && !Thread.currentThread().isInterrupted()) {
                 try {
                     boolean updated = flowAuth.update(token, clientId);
                     if (!updated) {
@@ -131,11 +191,24 @@ public final class Main extends JavaPlugin {
 
                     JsonObject entry = FlowPoll.get(token, clientId);
                     if (entry != null) {
-                        loggx("<green>Donation received:</green> " + entry);
+                        if (broadcastmssage) {
+                            Component message = processor.handle(entry);
+                            audiences.all().sendMessage(message);
+                        }
+                        if (donationtrigger) {
+                            processor.Trigger(entry);
+                        }
+
                     }
+
+                    Thread.sleep(500); // biar gak spamming backend, dan bisa interrupted
 
                 } catch (IOException e) {
                     loggx("<red>Polling error: </red>" + e.getMessage());
+                    break;
+                } catch (InterruptedException e) {
+                    // tangkap interrupt, keluarin dari loop
+                    Thread.currentThread().interrupt(); // set ulang status interrupted
                     break;
                 }
             }
@@ -143,15 +216,11 @@ public final class Main extends JavaPlugin {
         pollingThread.start();
     }
 
+
     private void stopPolling() {
         running = false;
         if (pollingThread != null && pollingThread.isAlive()) {
             pollingThread.interrupt();
-            try {
-                pollingThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
     }
 

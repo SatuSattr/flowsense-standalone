@@ -1,7 +1,9 @@
 package id.flowsense;
 
 import java.io.*;
-import java.net.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 
 public class FlowAuth {
     private static final String AUTH_URL = "https://ux.appcloud.id/auth/auth.php";
@@ -60,7 +62,7 @@ public class FlowAuth {
         return sendPostRequest(UPDATE_URL, params).trim().equalsIgnoreCase("true");
     }
 
-    public boolean exit(String token, String clientId) throws IOException {
+    public static boolean exit(String token, String clientId) throws IOException {
         String params = "token=" + URLEncoder.encode(token, "UTF-8") +
                 "&clientid=" + URLEncoder.encode(clientId, "UTF-8");
         return sendPostRequest(EXIT_URL, params).trim().equalsIgnoreCase("true");

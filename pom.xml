@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>id.sattr</groupId>
-    <artifactId>tipflow</artifactId>
+    <artifactId>flowsense</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
 
-    <name>tipflow</name>
+    <name>flowsense</name>
 
     <properties>
         <java.version>17</java.version>
