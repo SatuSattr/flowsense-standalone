@@ -92,11 +92,17 @@ public class BodyProcess {
 
                     String condition = section.getString("amount");
                     List<String> commands = section.getStringList("commands");
+                    int delay = section.getInt("delay", 0);
 
                     if (matchesCondition(amount, condition)) {
-                        for (String cmd : commands) {
+                        for (int i = 0; i < commands.size(); i++) {
+                            String cmd = commands.get(i);
                             String parsed = FormatPlaceholder(cmd, entry);
-                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
+                            int finalDelay = delay * i;
+
+                            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsed);
+                            }, finalDelay); // delay per index
                         }
                     }
                 }
@@ -114,7 +120,7 @@ public class BodyProcess {
             return amount > Long.parseLong(condition.substring(1));
         if (condition.startsWith("<"))
             return amount < Long.parseLong(condition.substring(1));
-        if (condition.startsWith("="))
+        if (condition.startsWith("=") || condition.isEmpty())
             return amount == Long.parseLong(condition.substring(1));
         return false;
     }

@@ -2,19 +2,26 @@ package id.flowsense;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import id.flowsense.api.DonationEvent;
 import io.github.milkdrinkers.colorparser.ColorParser;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
-public final class Main extends JavaPlugin {
+public final class Main extends JavaPlugin implements TabCompleter {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
     public static BukkitAudiences audiences;
     private static Main instance;
@@ -35,6 +42,7 @@ public final class Main extends JavaPlugin {
         instance = this;
         audiences = BukkitAudiences.create(this);
         saveDefaultConfig();
+        getCommand("flowsense").setTabCompleter(this);
         if (reloadAll(false, false)) {
             long endTime = System.currentTimeMillis();
             long timeTaken = endTime - startTime;
@@ -95,18 +103,53 @@ public final class Main extends JavaPlugin {
                 return true;
             }
 
-            if (args[0].equalsIgnoreCase("address")) {
+            if (args[0].equalsIgnoreCase("lookup")) {
                 String partialToken = getEveryThirdChar(token);
                 String url = "https://ux.appcloud.id/catcher/ientry.php?ux=" + partialToken;
+                long ping = Pinger.checkPing("https://ux.appcloud.id/pinger");
                 if (sender instanceof org.bukkit.command.ConsoleCommandSender) {
-                    loggx(prefix + "&aWebhook Addr:&d " + url);
+                    loggx(" ");
+                    loggx("<#424242>========= &8Flowsense Lookup <#424242>=========");
+                    loggx(" &7• <#e2af41>Client ID&8: &7" + clientId);
+                    loggx(" &7• <#e2af41>Provider&8: " + getProviderName(provider, true) + " &7(" + provider + ")");
+                    loggx(" &7• <#e2af41>Ping to Backend&8: <#68f068>" + ping + "ms");
+                    loggx(" &7• <#e27c41>Webhook URL&8: &6" + url);
+                    loggx("<#424242>==================================");
+                    loggx(" ");
                 } else {
-                    sendColored(sender, prefix + "&aWebhook Addr:&d " + url);
+                    sendColored(sender, " ");
+                    sendColored(sender, "<#424242>========= &8Flowsense Lookup <#424242>=========");
+                    sendColored(sender, " &7• <#e2af41>Client ID&8: &7" + clientId);
+                    sendColored(sender, " &7• <#e2af41>Provider&8: " + getProviderName(provider, true) + " &7(" + provider + ")");
+                    sendColored(sender, " &7• <#e2af41>Ping to Backend&8: <#68f068>" + ping + "ms");
+                    sendColored(sender, " &7• <#e27c41>Webhook URL&8: &6" + "<click:open_url:'" + url + "'>" + url + "</click>");
+                    sendColored(sender, "<#424242>==================================");
+                    sendColored(sender, " ");
                 }
+
                 return true;
             }
+
         }
         return false;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (command.getName().equalsIgnoreCase("flowsense")) {
+            if (args.length == 1) {
+                List<String> subcommands = Arrays.asList("reload", "lookup");
+                List<String> suggestions = new ArrayList<>();
+                String input = args[0].toLowerCase();
+                for (String sub : subcommands) {
+                    if (sub.startsWith(input)) {
+                        suggestions.add(sub);
+                    }
+                }
+                return suggestions;
+            }
+        }
+        return Collections.emptyList();
     }
 
 
@@ -198,6 +241,10 @@ public final class Main extends JavaPlugin {
                         if (donationtrigger) {
                             processor.Trigger(entry);
                         }
+
+                        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                            Bukkit.getPluginManager().callEvent(new DonationEvent(entry));
+                        });
 
                     }
 

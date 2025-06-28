@@ -5,7 +5,7 @@ api-version: '1.18'
 commands:
   flowsense:
     description: Main command for FlowSense
-    usage: /flowsense <reload|address>
+    usage: /flowsense <reload|lookup>
 authors: [ Sattr ]
 description: Webhook-powered donation notifier for Minecraft
 website: https://sattr.vercel.id

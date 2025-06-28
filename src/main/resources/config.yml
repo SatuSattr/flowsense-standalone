@@ -68,23 +68,24 @@ donation-trigger: true
 
 # commands support all placeholders that are listed above
 
-# Example: Show an actionbar message when someone donates more than 5,000
-send-actionbar:
-  amount: ">5000"
+# Example: Show an actionbar message when someone donates
+actionbar:
+  amount: ">0"
+  delay: 0
   commands:
-    - 'title @a actionbar "{donator_name} donated Rp{amount_formatted}!"'
+    - 'title @a actionbar "{donator_name} Just Donated Rp{amount_formatted}!"'
 
-# Example: Play a bell sound for weveryone when someone donates exactly 10,000
+# Example: Play a bell sound to everyone when someone donates 10,000 or more
 sound-trigger:
-  amount: "=10000"
-  commands: # (don't use "/")
-    - "playsound minecraft:block.note_block.bell master @a ~ ~ ~ 1"
-
-# Example: Give a reward to donator only if the donator is online and type the name correctly
-give-reward:
-  amount: ">15000"
+  amount: ">9999"
+  delay: 2
   commands:
-    - "give {donator_name} minecraft:diamond 3"
-    - "say Thanks {donator_name} for donating Rp{amount_formatted}!"
+    - "execute as @a at @s run playsound minecraft:block.note_block.bell master @p ~ ~ ~ 1 0.6"
+    - ""
+    - "execute as @a at @s run playsound minecraft:block.note_block.bell master @p ~ ~ ~ 1 0.75"
+    - ""
+    - ""
+    - ""
+    - "execute as @a at @s run playsound minecraft:block.note_block.bell master @p ~ ~ ~ 1 0.9"
 
 
