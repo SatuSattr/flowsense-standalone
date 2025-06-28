@@ -2,10 +2,28 @@ name: flowsense
 version: '1.0'
 main: id.flowsense.Main
 api-version: '1.18'
+
 commands:
   flowsense:
     description: Main command for FlowSense
-    usage: /flowsense <reload|lookup>
+    usage: /flowsense <reload|lookup|fakedonate|fd>
+    permission: flowsense.use
+
+permissions:
+  flowsense.use:
+    description: Base permission to use /flowsense command.
+    default: op
+  flowsense.fakedonate:
+    description: Allows admin to simulate a fake donation.
+    default: op
+  flowsense.lookup:
+    description: Allows user to lookup certain information about flowsense.
+    default: op
+  flowsense.reload:
+    description: Allows user to reload the flowsense plugin.
+    default: op
+
+
 authors: [ Sattr ]
 description: Webhook-powered donation notifier for Minecraft
 website: https://sattr.vercel.id

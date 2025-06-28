@@ -68,24 +68,30 @@ donation-trigger: true
 
 # commands support all placeholders that are listed above
 
-# Example: Show an actionbar message when someone donates
+# Example: Strikes everyone with a lighting when a donation with "50k or more" amounts received
+strikethunder:
+  amount: ">49999"
+  delay: 3
+  commands:
+    - 'execute as @a at @s run summon minecraft:lightning_bolt ~ ~ ~'
+    - 'execute as @a at @s run summon minecraft:lightning_bolt ~ ~ ~'
+    - 'execute as @a at @s run summon minecraft:lightning_bolt ~ ~ ~'
+
+# Example: shows a title and actionbar to all players when a donation with over 25k amounts received
+title:
+  amount: ">25000"
+  delay: 0
+  commands:
+    - 'title @a title [{"text":"💵 Donation!","color":"green","bold":true}]'
+    - 'title @a subtitle [{"text":"{donator_name}","color":"yellow"}, {"text":" Just Donated ","color":"white"}, {"text":"Rp{amount_formatted}","color":"green"}]'
+
+# Example: Show an actionbar to all players when someone donates
 actionbar:
   amount: ">0"
   delay: 0
   commands:
-    - 'title @a actionbar "{donator_name} Just Donated Rp{amount_formatted}!"'
+    - 'title @a actionbar [{"text":"{donator_name}","color":"gold"},{"text":" Just Donated ","color":"white"},{"text":"Rp{amount_formatted}!","color":"green"},{"text":" Thankyouu!! :D","color":"light_purple"}]'
 
-# Example: Play a bell sound to everyone when someone donates 10,000 or more
-sound-trigger:
-  amount: ">9999"
-  delay: 2
-  commands:
-    - "execute as @a at @s run playsound minecraft:block.note_block.bell master @p ~ ~ ~ 1 0.6"
-    - ""
-    - "execute as @a at @s run playsound minecraft:block.note_block.bell master @p ~ ~ ~ 1 0.75"
-    - ""
-    - ""
-    - ""
-    - "execute as @a at @s run playsound minecraft:block.note_block.bell master @p ~ ~ ~ 1 0.9"
+
 
 

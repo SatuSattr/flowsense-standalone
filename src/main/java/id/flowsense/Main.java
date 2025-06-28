@@ -17,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -89,10 +88,29 @@ public final class Main extends JavaPlugin implements TabCompleter {
         return result.toString();
     }
 
+    private boolean isNumeric(String s) {
+        try {
+            Integer.parseInt(s);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private boolean isProbablyEmail(String s) {
+        return s.contains("@") && s.contains(".");
+    }
+
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length > 0) {
             if (args[0].equalsIgnoreCase("reload")) {
+                if (!sender.hasPermission("flowsense.reload")) {
+                    sendColored(sender, prefix + "<red>You don't have permission to use this.");
+                    return true;
+                }
+
                 sendColored(sender, prefix + "<gray>Reloading FlowSense...");
                 boolean aylacantik = reloadAll(true, iloveherxx);
                 if (aylacantik) {
@@ -103,7 +121,102 @@ public final class Main extends JavaPlugin implements TabCompleter {
                 return true;
             }
 
+            if (args[0].equalsIgnoreCase("fakedonate") || args[0].equalsIgnoreCase("fd")) {
+                if (!sender.hasPermission("flowsense.fakedonate")) {
+                    sendColored(sender, prefix + "<red>You don't have permission to use this.");
+                    return true;
+                }
+
+                if (args.length < 4) {
+                    sendColored(sender, prefix + "<red>Usage:</red> /flowsense fakedonate <donator_name> <amount> <provider_id> [unit] [unit_qty] <message>");
+                    return true;
+                }
+
+                String donatorName = args[1];
+                long amount;
+                int provider;
+
+                try {
+                    amount = Long.parseLong(args[2]);
+                } catch (NumberFormatException e) {
+                    sendColored(sender, prefix + "<red>Amount must be a number!</red>");
+                    return true;
+                }
+
+                try {
+                    provider = Integer.parseInt(args[3]);
+                    if (provider < 1 || provider > 3) throw new NumberFormatException();
+                } catch (NumberFormatException e) {
+                    sendColored(sender, prefix + "<red>Provider ID must be 1 (Saweria), 2 (Tako), or 3 (Trakteer).</red>");
+                    return true;
+                }
+
+                String unit = "";
+                int unit_qty = 1;
+                StringBuilder messageBuilder = new StringBuilder();
+
+                if (provider == 3) {
+                    if (args.length < 6) {
+                        sendColored(sender, prefix + "<red>Provider 3 (Trakteer) requires <unit> and <unit_qty> before message.</red>");
+                        return true;
+                    }
+                    unit = args[4];
+                    try {
+                        unit_qty = Integer.parseInt(args[5]);
+                    } catch (NumberFormatException e) {
+                        sendColored(sender, prefix + "<red>Unit quantity must be a number.</red>");
+                        return true;
+                    }
+
+                    // Build message from args[6]+
+                    for (int i = 6; i < args.length; i++) {
+                        messageBuilder.append(args[i]).append(" ");
+                    }
+
+                } else {
+                    // Build message from args[4]+
+                    for (int i = 4; i < args.length; i++) {
+                        messageBuilder.append(args[i]).append(" ");
+                    }
+                }
+
+                String message = messageBuilder.toString().trim();
+
+                JsonObject fakeEntry = new JsonObject();
+                fakeEntry.addProperty("id", (int) (Math.random() * 9999));
+                fakeEntry.addProperty("created_at", java.time.LocalDateTime.now().toString());
+                fakeEntry.addProperty("amount", amount);
+                fakeEntry.addProperty("donator_name", donatorName);
+                fakeEntry.addProperty("message", message);
+                fakeEntry.addProperty("provider", provider);
+                fakeEntry.addProperty("unit", unit);
+                fakeEntry.addProperty("unit_qty", unit_qty);
+                fakeEntry.addProperty("donator_email", "flowsense@gmail.com");
+
+                // Kirim ke player + trigger
+                if (broadcastmssage) {
+                    Component formatted = processor.handle(fakeEntry);
+                    audiences.all().sendMessage(formatted);
+                }
+                if (donationtrigger) {
+                    processor.Trigger(fakeEntry);
+                }
+
+                Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+                    Bukkit.getPluginManager().callEvent(new DonationEvent(fakeEntry));
+                });
+                return true;
+            }
+
+
             if (args[0].equalsIgnoreCase("lookup")) {
+
+                if (!sender.hasPermission("flowsense.lookup")) {
+                    sendColored(sender, prefix + "<red>You don't have permission to use this.");
+                    return true;
+                }
+
+
                 String partialToken = getEveryThirdChar(token);
                 String url = "https://ux.appcloud.id/catcher/ientry.php?ux=" + partialToken;
                 long ping = Pinger.checkPing("https://ux.appcloud.id/pinger");
@@ -138,17 +251,78 @@ public final class Main extends JavaPlugin implements TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (command.getName().equalsIgnoreCase("flowsense")) {
             if (args.length == 1) {
-                List<String> subcommands = Arrays.asList("reload", "lookup");
                 List<String> suggestions = new ArrayList<>();
                 String input = args[0].toLowerCase();
-                for (String sub : subcommands) {
-                    if (sub.startsWith(input)) {
-                        suggestions.add(sub);
+
+                if (sender.hasPermission("flowsense.reload") && "reload".startsWith(input)) {
+                    suggestions.add("reload");
+                }
+
+                if (sender.hasPermission("flowsense.lookup") && "lookup".startsWith(input)) {
+                    suggestions.add("lookup");
+                }
+
+                if (sender.hasPermission("flowsense.fakedonate") && "fakedonate".startsWith(input)) {
+                    suggestions.add("fakedonate");
+                }
+
+                if (sender.hasPermission("flowsense.fakedonate") && "fd".startsWith(input)) {
+                    suggestions.add("fd");
+                }
+
+                return suggestions;
+            }
+
+
+            if ((args[0].equalsIgnoreCase("fakedonate") || args[0].equalsIgnoreCase("fd"))) {
+                if (!sender.hasPermission("flowsense.fakedonate")) return Collections.emptyList();
+
+                List<String> suggestions = new ArrayList<>();
+                switch (args.length) {
+                    case 2 -> suggestions.add("<donator_name>");
+                    case 3 -> suggestions.add("<amount>");
+                    case 4 -> suggestions.addAll(List.of("1", "2", "3"));
+                    case 5 -> {
+                        // Coba parsing provider_id
+                        try {
+                            int provider = Integer.parseInt(args[3]);
+                            if (provider == 3) {
+                                suggestions.add("<unit>");
+                            } else if (provider == 1 || provider == 2) {
+                                suggestions.add("<message>");
+                            }
+                        } catch (NumberFormatException e) {
+                            // provider invalid, no suggestion
+                        }
+                    }
+                    case 6 -> {
+                        try {
+                            int provider = Integer.parseInt(args[3]);
+                            if (provider == 3) {
+                                // kalau args[5] masih kosong, ya suggest unit_qty
+                                suggestions.add("<unit_qty>");
+                            }
+                        } catch (NumberFormatException e) {
+                            // do nothing
+                        }
+                    }
+                    case 7 -> {
+                        try {
+                            int provider = Integer.parseInt(args[3]);
+                            if (provider == 3) {
+                                // selesai unit dan unit_qty → message sekarang
+                                suggestions.add("<message>");
+                            }
+                        } catch (NumberFormatException e) {
+                            // do nothing
+                        }
                     }
                 }
                 return suggestions;
             }
+
         }
+
         return Collections.emptyList();
     }
 
