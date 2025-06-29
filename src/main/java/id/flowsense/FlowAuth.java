@@ -6,9 +6,15 @@ import java.net.URL;
 import java.net.URLEncoder;
 
 public class FlowAuth {
-    private static final String AUTH_URL = "https://ux.appcloud.id/auth/auth.php";
-    private static final String UPDATE_URL = "https://ux.appcloud.id/auth/update.php";
-    private static final String EXIT_URL = "https://ux.appcloud.id/auth/exit.php";
+    private final String AUTH_URL;
+    private final String UPDATE_URL;
+    private final String EXIT_URL;
+
+    public FlowAuth(String authurl, String updateurl, String exiturl) {
+        this.AUTH_URL = authurl;
+        this.UPDATE_URL = updateurl;
+        this.EXIT_URL = exiturl;
+    }
 
     private String extractClientId(String json) {
         String key = "\"client_id\":\"";
@@ -19,7 +25,7 @@ public class FlowAuth {
         return end == -1 ? null : json.substring(start, end);
     }
 
-    private static String sendPostRequest(String urlStr, String urlParameters) throws IOException {
+    private String sendPostRequest(String urlStr, String urlParameters) throws IOException {
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("POST");
@@ -30,12 +36,9 @@ public class FlowAuth {
             os.write(urlParameters.getBytes("UTF-8"));
         }
 
-        InputStream stream;
-        if (conn.getResponseCode() >= 400) {
-            stream = conn.getErrorStream();
-        } else {
-            stream = conn.getInputStream();
-        }
+        InputStream stream = (conn.getResponseCode() >= 400)
+                ? conn.getErrorStream()
+                : conn.getInputStream();
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(stream))) {
             StringBuilder response = new StringBuilder();
@@ -47,14 +50,12 @@ public class FlowAuth {
         }
     }
 
-
-    public static String auth(String token, int provider, String prtoken) throws IOException {
+    public String auth(String token, int provider, String prtoken) throws IOException {
         String params = "token=" + URLEncoder.encode(token, "UTF-8") +
                 "&provider=" + provider +
                 "&prtoken=" + URLEncoder.encode(prtoken, "UTF-8");
-        return sendPostRequest(AUTH_URL, params); // langsung return response string (bisa "err:401" dll)
+        return sendPostRequest(AUTH_URL, params);
     }
-
 
     public boolean update(String token, String clientId) throws IOException {
         String params = "token=" + URLEncoder.encode(token, "UTF-8") +
@@ -62,7 +63,7 @@ public class FlowAuth {
         return sendPostRequest(UPDATE_URL, params).trim().equalsIgnoreCase("true");
     }
 
-    public static boolean exit(String token, String clientId) throws IOException {
+    public boolean exit(String token, String clientId) throws IOException {
         String params = "token=" + URLEncoder.encode(token, "UTF-8") +
                 "&clientid=" + URLEncoder.encode(clientId, "UTF-8");
         return sendPostRequest(EXIT_URL, params).trim().equalsIgnoreCase("true");

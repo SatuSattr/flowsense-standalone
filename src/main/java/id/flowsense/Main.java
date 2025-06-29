@@ -11,11 +11,14 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,11 +28,12 @@ public final class Main extends JavaPlugin implements TabCompleter {
     public static BukkitAudiences audiences;
     private static Main instance;
     public static String prefix, token, prtoken, clientId;
-    private static boolean broadcastmssage, donationtrigger;
+    private static boolean broadcastmssage, donationtrigger, hasinternet;
     private int provider;
     private boolean iloveherxx = true;
-
+    RemoteFetcher refetcher = new RemoteFetcher();
     private FlowAuth flowAuth;
+    private FlowPoll flowPoll;
     private Thread pollingThread;
     private volatile boolean running = false;
 
@@ -42,17 +46,18 @@ public final class Main extends JavaPlugin implements TabCompleter {
         audiences = BukkitAudiences.create(this);
         saveDefaultConfig();
         getCommand("flowsense").setTabCompleter(this);
-        if (reloadAll(false, false)) {
+        hasinternet = SureInternet.HasInternet();
+
+        if (reloadAll(false, false, null)) {
             long endTime = System.currentTimeMillis();
             long timeTaken = endTime - startTime;
             loggx(prefix + "&aSuccessfully enabled! &f(took " + timeTaken + " ms)");
         } else {
             long endTime = System.currentTimeMillis();
             long timeTaken = endTime - startTime;
-            loggx(prefix + "&cPlugin not enabled! &f(took " + timeTaken + " ms)");
+            loggx(prefix + "<#FF7808>Plugin not enabled correctly! &f(took " + timeTaken + " ms)");
             iloveherxx = false;
         }
-        ;
     }
 
     @Override
@@ -60,7 +65,7 @@ public final class Main extends JavaPlugin implements TabCompleter {
         stopPolling();
         if (flowAuth != null && clientId != null) {
             try {
-                FlowAuth.exit(token, clientId);
+                flowAuth.exit(token, clientId);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -75,9 +80,13 @@ public final class Main extends JavaPlugin implements TabCompleter {
 
 
     public static void sendColored(CommandSender sender, String message) {
+        if (sender == null) {
+            return;
+        }
         Component msg = ColorParser.of(message).parseLegacy().build();
         audiences.sender(sender).sendMessage(msg);
     }
+
 
     public static String getEveryThirdChar(String x) {
         StringBuilder result = new StringBuilder();
@@ -86,19 +95,6 @@ public final class Main extends JavaPlugin implements TabCompleter {
             if (result.length() == 10) break;
         }
         return result.toString();
-    }
-
-    private boolean isNumeric(String s) {
-        try {
-            Integer.parseInt(s);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    private boolean isProbablyEmail(String s) {
-        return s.contains("@") && s.contains(".");
     }
 
 
@@ -110,9 +106,14 @@ public final class Main extends JavaPlugin implements TabCompleter {
                     sendColored(sender, prefix + "<red>You don't have permission to use this.");
                     return true;
                 }
-
+                boolean aylacantik;
                 sendColored(sender, prefix + "<gray>Reloading FlowSense...");
-                boolean aylacantik = reloadAll(true, iloveherxx);
+                if (sender instanceof Player) {
+                    aylacantik = reloadAll(true, iloveherxx, sender);
+                } else {
+                    aylacantik = reloadAll(true, iloveherxx, null);
+                }
+
                 if (aylacantik) {
                     sendColored(sender, prefix + "<green>Reload perfectly complete.");
                 } else {
@@ -181,10 +182,13 @@ public final class Main extends JavaPlugin implements TabCompleter {
                 }
 
                 String message = messageBuilder.toString().trim();
+                LocalDateTime now = LocalDateTime.now();
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                String createdat = now.format(formatter);
 
                 JsonObject fakeEntry = new JsonObject();
                 fakeEntry.addProperty("id", (int) (Math.random() * 9999));
-                fakeEntry.addProperty("created_at", java.time.LocalDateTime.now().toString());
+                fakeEntry.addProperty("created_at", createdat);
                 fakeEntry.addProperty("amount", amount);
                 fakeEntry.addProperty("donator_name", donatorName);
                 fakeEntry.addProperty("message", message);
@@ -218,8 +222,11 @@ public final class Main extends JavaPlugin implements TabCompleter {
 
 
                 String partialToken = getEveryThirdChar(token);
-                String url = "https://ux.appcloud.id/catcher/ientry.php?ux=" + partialToken;
-                long ping = Pinger.checkPing("https://ux.appcloud.id/pinger");
+                String url = "https://" + refetcher.getMainUrl()
+                        + refetcher.getCatcherPath()
+                        + refetcher.getCatcherFile("input")
+                        + "?ux=" + partialToken;
+                long ping = Pinger.checkPing("https://" + refetcher.getMainUrl() + refetcher.getPingerUrl());
                 if (sender instanceof org.bukkit.command.ConsoleCommandSender) {
                     loggx(" ");
                     loggx("<#424242>========= &8Flowsense Lookup <#424242>=========");
@@ -327,7 +334,7 @@ public final class Main extends JavaPlugin implements TabCompleter {
     }
 
 
-    private boolean reloadAll(boolean isreload, boolean iloveher) {
+    private boolean reloadAll(boolean isreload, boolean iloveher, CommandSender sender) {
         reloadConfig();
         FileConfiguration config = getConfig();
         processor = new BodyProcess(getConfig(), getLogger());
@@ -342,41 +349,65 @@ public final class Main extends JavaPlugin implements TabCompleter {
 
         if (provider > 3) {
             loggx(prefix + "&cProvider is not valid! please use 1,2, or 3!");
+            sendColored(sender, prefix + "&cProvider is not valid! please use 1,2, or 3!");
             return false;
         }
-        flowAuth = new FlowAuth();
-        try {
-            if (isreload && iloveher) {
-                boolean exiting = FlowAuth.exit(token, clientId);
-            }
-            String response = FlowAuth.auth(token, provider, prtoken);
-            JsonObject json = JsonParser.parseString(response).getAsJsonObject();
-            if (json.has("error")) {
-                String errorMsg = json.get("error").getAsString();
-                loggx(prefix + "&6" + errorMsg);
-                return false;
-            }
 
-            if (json.has("client_id")) {
-                clientId = json.get("client_id").getAsString();
-                if (clientId == null || clientId.isEmpty()) {
-                    loggx(prefix + "<red>Authorization Failed! (invalid token)</red>");
+        hasinternet = SureInternet.HasInternet();
+        if (hasinternet) {
+            if (refetcher.fetch()) {
+                flowAuth = new FlowAuth(
+                        "https://" + refetcher.getMainUrl() + refetcher.getAuthPath() + refetcher.getAuthFile("auth"),
+                        "https://" + refetcher.getMainUrl() + refetcher.getAuthPath() + refetcher.getAuthFile("update"),
+                        "https://" + refetcher.getMainUrl() + refetcher.getAuthPath() + refetcher.getAuthFile("exit")
+                );
+                flowPoll = new FlowPoll("https://" + refetcher.getMainUrl() + refetcher.getCatcherPath() + refetcher.getCatcherFile("output"));
+                try {
+                    if (isreload && iloveher) {
+                        boolean exiting = flowAuth.exit(token, clientId);
+                    }
+                    String response = flowAuth.auth(token, provider, prtoken);
+                    JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+                    if (json.has("error")) {
+                        String errorMsg = json.get("error").getAsString();
+                        loggx(prefix + "&6" + errorMsg);
+                        return false;
+                    }
+
+                    if (json.has("client_id")) {
+                        clientId = json.get("client_id").getAsString();
+                        if (clientId == null || clientId.isEmpty()) {
+                            loggx(prefix + "<red>Authorization Failed! (invalid token)</red>");
+                            sendColored(sender, prefix + "<red>Authorization Failed! (invalid token)</red>");
+                            return false;
+                        }
+                        loggx(prefix + "<green>Client Authorized! &r" + getProviderName(provider, true) + " &7(" + clientId + ")");
+                        sendColored(sender, prefix + "<green>Client Authorized! &r" + getProviderName(provider, true) + " &7(" + clientId + ")");
+                        iloveherxx = true;
+                        startPollingThread();
+                        return true;
+                    } else {
+                        loggx(prefix + "<red>Authorization Failed! (invalid token)</red>");
+                        sendColored(sender, prefix + "<red>Authorization Failed! (invalid token)</red>");
+                        return false;
+                    }
+                } catch (Exception e) {
+                    loggx(prefix + "<red>Authorization Failed!: </red>" + e.getMessage());
+                    sendColored(sender, prefix + "<red>Authorization Failed!: </red>" + e.getMessage());
                     return false;
                 }
-                loggx(prefix + "<green>Client Authorized! &r" + getProviderName(provider, true) + " &7(" + clientId + ")");
-                iloveherxx = true;
-//                loggx(prefix + "&aWebhook Addr:&d " + "https://ux.appcloud.id/catcher/ientry.php?ux=" + getFirstAndLastFive(token));
-                startPollingThread();
-                return true;
             } else {
-                loggx(prefix + "<red>Authorization Failed! (invalid token)</red>");
-                return false;
+                loggx(prefix + "&cFailed fetching remote url! please make sure you have internet access!");
+                iloveherxx = false;
             }
-
-        } catch (Exception e) {
-            loggx(prefix + "<red>Authorization Failed!: </red>" + e.getMessage());
+        } else {
+            loggx(prefix + "&cYour not Connected to the internet!");
+            sendColored(sender, prefix + "&cYour not Connected to the internet!");
+            loggx(prefix + "&eThe plugin will start but you cant received any notification unless you use /fakedonation");
+            sendColored(sender, prefix + "&eThe plugin will start but you cant received any notification unless you use /fakedonation");
             return false;
         }
+        return false;
     }
 
 
@@ -406,7 +437,7 @@ public final class Main extends JavaPlugin implements TabCompleter {
                         break;
                     }
 
-                    JsonObject entry = FlowPoll.get(token, clientId);
+                    JsonObject entry = flowPoll.get(token, clientId);
                     if (entry != null) {
                         if (broadcastmssage) {
                             Component message = processor.handle(entry);

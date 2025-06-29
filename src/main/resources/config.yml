@@ -71,7 +71,7 @@ donation-trigger: true
 # Example: Strikes everyone with a lighting when a donation with "50k or more" amounts received
 strikethunder:
   amount: ">49999"
-  delay: 3
+  delay: 3 # delay in ticks (20 ticks = 1 second)
   commands:
     - 'execute as @a at @s run summon minecraft:lightning_bolt ~ ~ ~'
     - 'execute as @a at @s run summon minecraft:lightning_bolt ~ ~ ~'
