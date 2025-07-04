@@ -1,21 +1,29 @@
-# very special private secret token that you should keep by yourself
-# this token is used to activate your plugin
-token: ""
-
-# choose donation provider that suites your needs, here are the list
-# 1 = Saweria         https://saweria.co/
-# 2 = Tako            https://tako.id/
-# 3 = Trakteer.id     https://trakteer.id/
+# The port used by the local HTTP server to receive webhook requests.
+# Make sure this port is not used by other applications.
 # type: integer
-# default: 1
-provider: 1
+# Default: 9876
+port: 9876
 
-# your webhook token from the selected provider
-# type: string
-# default: ""
-webhook-token: ""
+# Token used to verify incoming webhooks from each provider.
+# Leave empty ("") if you want to disable the providers.
+# You can get this token from your provider's integration dashboard.
+webhook-tokens:
+  saweria: ""
+  tako: ""
+  trakteer: ""
 
-# the plugins's prefix
+# The HTTP endpoint path used to receive incoming webhook POST requests
+#
+# Example:
+#   With port = 9876 and webhook-path = "/webhook",
+#   the final listener URL becomes:
+#     http://<your-server-ip>:9876/webhook
+#
+# Make sure it starts with a forward slash (/)
+# Default: "/webhook"
+webhook-path: "/webhook"
+
+# the plugin's prefix
 # minimessage support
 # type: string
 # default: "<#60B5FF>[flowsense]&r "
@@ -91,7 +99,3 @@ actionbar:
   delay: 0
   commands:
     - 'title @a actionbar [{"text":"{donator_name}","color":"gold"},{"text":" Just Donated ","color":"white"},{"text":"Rp{amount_formatted}!","color":"green"},{"text":" Thankyouu!! :D","color":"light_purple"}]'
-
-
-
-

@@ -1,4 +1,4 @@
-package id.flowsense;
+package id.flowsenseStd;
 
 import java.net.HttpURLConnection;
 import java.net.URL;

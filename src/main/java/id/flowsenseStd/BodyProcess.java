@@ -1,4 +1,4 @@
-package id.flowsense;
+package id.flowsenseStd;
 
 import com.google.gson.JsonObject;
 import io.github.milkdrinkers.colorparser.ColorParser;
@@ -26,7 +26,7 @@ public class BodyProcess {
     public String Format(JsonObject entry) {
         try {
             String createdAt = entry.get("created_at").getAsString();
-            int idx = entry.get("id").getAsInt();
+            String idx = entry.get("id").getAsString();
             int amountRaw = entry.get("amount").getAsInt();
             String donatorName = entry.get("donator_name").getAsString();
             String donatorEmail = entry.get("donator_email").getAsString();
@@ -46,7 +46,7 @@ public class BodyProcess {
 
             String template = config.getString("message", "");
             return template
-                    .replace("{id}", String.valueOf(idx))
+                    .replace("{id}", idx)
                     .replace("{created_at}", createdAt)
                     .replace("{provider_id}", String.valueOf(providerId))
                     .replace("{provider_name}", providerName)
@@ -128,7 +128,7 @@ public class BodyProcess {
     // 🧩 Format ulang command sebelum dieksekusi
     private String FormatPlaceholder(String input, JsonObject entry) {
         String createdAt = entry.get("created_at").getAsString();
-        int idx = entry.get("id").getAsInt();
+        String idx = entry.get("id").getAsString();
         int amountRaw = entry.get("amount").getAsInt();
         String donatorName = entry.get("donator_name").getAsString();
         String donatorEmail = entry.get("donator_email").getAsString();
@@ -147,7 +147,7 @@ public class BodyProcess {
         };
 
         return input
-                .replace("{id}", String.valueOf(idx))
+                .replace("{id}", idx)
                 .replace("{created_at}", createdAt)
                 .replace("{provider_id}", String.valueOf(providerId))
                 .replace("{provider_name}", providerName)

@@ -1,4 +1,4 @@
-package id.flowsense;
+package id.flowsenseStd;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

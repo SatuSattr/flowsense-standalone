@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>id.sattr</groupId>
-    <artifactId>flowsense</artifactId>
+    <artifactId>flowsenseStd</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
 
-    <name>flowsense</name>
+    <name>flowsenseStd</name>
 
     <properties>
         <java.version>17</java.version>

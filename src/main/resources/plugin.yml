@@ -1,6 +1,6 @@
-name: flowsense
+name: flowsenseStd
 version: '1.0'
-main: id.flowsense.Main
+main: id.flowsenseStd.Main
 api-version: '1.18'
 
 commands:
